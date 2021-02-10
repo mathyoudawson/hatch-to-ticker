@@ -18,10 +18,11 @@ require 'byebug'
 file_name = "order-transaction-export-2021_02_05.csv"
 
 orders = CSV.parse(File.read(file_name), headers: true)
+buy_orders = orders.select { |order| order["Transaction Type"] == "BUY" }
 
 ticker_hash = { "watchlist" => [], "lots" => [] }
 
-orders.each do |order|
+buy_orders.each do |order|
   symbol = order["Instrument Code"]
   quantity = order["Quantity"].to_f
   unit_cost = order["Price"].to_f
@@ -39,6 +40,7 @@ orders.each do |order|
     "quantity" => quantity,
     "unit_cost" => unit_cost
   }
+
   ticker_hash["watchlist"] << order["Instrument Code"] unless existing_lot
   ticker_hash["lots"] << lot_hash
 end
