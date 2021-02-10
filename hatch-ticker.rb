@@ -1,6 +1,8 @@
+gem 'byebug', '=11.1.3'
 require 'optparse'
 require 'csv'
 require 'yaml'
+require 'byebug'
 # @options = {}
 # OptionParser.new do |opts|
 #   puts opts
@@ -20,14 +22,29 @@ orders = CSV.parse(File.read(file_name), headers: true)
 ticker_hash = { "watchlist" => [], "lots" => [] }
 
 orders.each do |order|
+  symbol = order["Instrument Code"]
+  quantity = order["Quantity"].to_f
+  unit_cost = order["Price"].to_f
+
+  existing_lot = ticker_hash["lots"].find { |lot| lot["symbol"] == symbol } #remove it and add later?
+
+  if existing_lot
+    quantity += existing_lot["quantity"].to_f
+    unit_cost = (unit_cost + existing_lot["unit_cost"].to_f) / 2.0
+    ticker_hash["lots"].delete(existing_lot)
+  end
+
   lot_hash = {
-    "symbol" => order["Instrument Code"],
-    "quantity" => order["Quantity"].to_f,
-    "unit_cost" => order["Price"].to_f
+    "symbol" => symbol,
+    "quantity" => quantity,
+    "unit_cost" => unit_cost
   }
-  puts ticker_hash
-  ticker_hash["watchlist"] << order["Instrument Code"]
+  ticker_hash["watchlist"] << order["Instrument Code"] unless existing_lot
   ticker_hash["lots"] << lot_hash
+end
+
+grouped_lots = ticker_hash["lots"].group_by { |lot| lot["symbol"] }
+grouped_lots.each do |symbol, order|
 end
 
 File.open("ticker.yaml", "w") { |file| file.write(ticker_hash.to_yaml) }
